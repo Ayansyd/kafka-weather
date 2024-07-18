@@ -1,0 +1,41 @@
+import json
+import requests
+import logging
+import time 
+from quixstreams import Application
+
+def get_weather():
+    response = requests.get("https://api.open-meteo.com/v1/forecast",params={
+        "latitude": 51.5,
+        "longitude": -0.11,
+        "current":"temperature_2m"
+        },
+    )
+
+    return response.json()
+
+def main():
+    app = Application(
+        broker_address="localhost:9092",
+        loglevel="DEBUG",
+        )
+
+    with app.get_producer() as producer:
+        while True:
+            weather = get_weather()
+            logging.debug("got weather :%s",weather)
+            producer.produce(
+                topic="weather_data_demo",
+                key="London",
+                value=json.dumps(weather),
+            )
+            logging.info("producer sleeping")
+            time.sleep(3)
+
+if __name__ == "__main__":
+    logging.basicConfig(level="DEBUG")
+    main()
+
+# bin/kafka-server-start.sh config/server.properties
+# bin/zookeeper-server-start.sh config/zookeeper.properties
+
